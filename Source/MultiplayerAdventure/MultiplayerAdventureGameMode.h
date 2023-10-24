@@ -13,7 +13,10 @@ class AMultiplayerAdventureGameMode : public AGameModeBase
 
 public:
 	AMultiplayerAdventureGameMode();
+
+	UFUNCTION(BlueprintCallable)
+	void HostLANGame();
+
+	UFUNCTION(BlueprintCallable)
+	void JoinLANGame();
 };
-
-
-
