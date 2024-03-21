@@ -10,6 +10,9 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/StaticMeshActor.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -127,4 +130,70 @@ void AMultiplayerAdventureCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+void AMultiplayerAdventureCharacter::ServerRPCFunction_Implementation(int32 validationInt)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	if (!sphereMesh)
+	{
+		return;
+	}
+
+	// GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Green, TEXT("Server: ServerRPCFunction_Implementation"));
+
+	// GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Green, FString::Printf(TEXT("validationInt %d"), validationInt));
+
+	FActorSpawnParameters spawnParameters;
+	spawnParameters.Owner = this;
+
+	AStaticMeshActor* staticMeshActor = GetWorld()->SpawnActor<AStaticMeshActor>(spawnParameters);
+	if (!IsValid(staticMeshActor))
+	{
+		UE_LOG(LogTemp, Error, TEXT("No static mesh actor created"));
+		return;
+	}
+	// How to set owner once actor has already been spawned
+	// staticMeshActor->SetOwner(this);
+
+	staticMeshActor->SetReplicates(true);
+	staticMeshActor->SetReplicateMovement(true);
+	staticMeshActor->SetMobility(EComponentMobility::Movable);
+
+	FVector spawnLocation = (GetActorLocation() + (GetActorRotation().Vector() * 100.0f)) + (GetActorUpVector() * 50.0f);
+	staticMeshActor->SetActorLocation(spawnLocation);
+
+	UStaticMeshComponent* staticMeshComponent = staticMeshActor->GetStaticMeshComponent();
+	if (!IsValid(staticMeshComponent))
+	{
+		UE_LOG(LogTemp, Error, TEXT("No static mesh component found"));
+		return;
+	}
+
+	staticMeshComponent->SetIsReplicated(true);
+	staticMeshComponent->SetSimulatePhysics(true);
+	staticMeshComponent->SetStaticMesh(sphereMesh);
+}
+
+bool AMultiplayerAdventureCharacter::ServerRPCFunction_Validate(int32 validationInt)
+{
+	if (validationInt >= 0 && validationInt <=100)
+	{
+		return true;
+	}
+	return false;
+}
+
+void AMultiplayerAdventureCharacter::ClientRPCFunction_Implementation()
+{
+	if (!particleEffect)
+	{
+		return;
+	}
+
+	FVector effectSpawnLocation = GetActorLocation();
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), particleEffect, effectSpawnLocation, FRotator::ZeroRotator, true, EPSCPoolMethod::AutoRelease);
 }

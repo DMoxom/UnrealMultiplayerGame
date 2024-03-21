@@ -28,10 +28,16 @@ public:
 
 	FTimerHandle testTimer;
 
+	UPROPERTY(EditAnywhere)
+	class UParticleSystem* explosionEffect;
+
 	UFUNCTION(BlueprintCallable)
 	void OnRep_ReplicatedVar();
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const override;
 
 	void DecreasedReplicatedVar();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPCExplode();
 };

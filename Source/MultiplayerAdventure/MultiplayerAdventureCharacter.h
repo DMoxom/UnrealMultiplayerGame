@@ -45,6 +45,12 @@ class AMultiplayerAdventureCharacter : public ACharacter
 	UInputAction* LookAction;
 
 public:
+	UPROPERTY(EditAnywhere)
+	UStaticMesh* sphereMesh;
+
+	UPROPERTY(EditAnywhere)
+	class UParticleSystem* particleEffect;
+
 	AMultiplayerAdventureCharacter();
 	
 
@@ -69,5 +75,10 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-};
 
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
+	void ServerRPCFunction(int32 validationInt);
+
+	UFUNCTION(Client, Reliable, BlueprintCallable)
+	void ClientRPCFunction();
+};

@@ -3,6 +3,7 @@
 
 #include "MyBox.h"
 #include "Net/UnrealNetwork.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AMyBox::AMyBox()
@@ -26,7 +27,7 @@ void AMyBox::BeginPlay()
 
 	if (HasAuthority())
 	{
-		GetWorld()->GetTimerManager().SetTimer(testTimer, this, &AMyBox::DecreasedReplicatedVar, 2.0f, false);
+		GetWorld()->GetTimerManager().SetTimer(testTimer, this, &AMyBox::MulticastRPCExplode, 2.0f, false);
 	}
 }
 
@@ -61,15 +62,15 @@ void AMyBox::OnRep_ReplicatedVar()
 {
 	if (!HasAuthority())
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, 
-			FString::Printf(TEXT("Client %d: OnRep_ReplicatedVar"), GPlayInEditorID));
+		// GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, 
+			// FString::Printf(TEXT("Client %d: OnRep_ReplicatedVar"), GPlayInEditorID));
 		return;
 	}
 
 	FVector newLocation = GetActorLocation() + FVector(0.0f, 0.0f, 200.0f);
 	SetActorLocation(newLocation);
 
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, TEXT("Server: OnRep_ReplicatedVar"));
+	// GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, TEXT("Server: OnRep_ReplicatedVar"));
 }
 
 void AMyBox::DecreasedReplicatedVar()
@@ -86,4 +87,26 @@ void AMyBox::DecreasedReplicatedVar()
 	{
 		GetWorld()->GetTimerManager().SetTimer(testTimer, this, &AMyBox::DecreasedReplicatedVar, 2.0f, false);
 	}
+}
+
+void AMyBox::MulticastRPCExplode_Implementation()
+{
+	if (!HasAuthority())
+	{
+		// GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Client: MulticastRPCExplode_Implementation"));
+		// return;
+	}
+	else
+	{
+		// GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("Server: MulticastRPCExplode_Implementation"));
+		GetWorld()->GetTimerManager().SetTimer(testTimer, this, &AMyBox::MulticastRPCExplode, 2.0f, false);
+	}
+
+	if (IsRunningDedicatedServer())
+	{
+		return;
+	}
+
+	FVector explosionSpawnLocation = GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), explosionEffect, explosionSpawnLocation, FRotator::ZeroRotator, true, EPSCPoolMethod::AutoRelease);
 }
