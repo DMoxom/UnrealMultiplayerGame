@@ -23,6 +23,11 @@ void AMyBox::BeginPlay()
 
 	SetReplicates(true);
 	SetReplicateMovement(true);
+
+	if (HasAuthority())
+	{
+		GetWorld()->GetTimerManager().SetTimer(testTimer, this, &AMyBox::DecreasedReplicatedVar, 2.0f, false);
+	}
 }
 
 // Called every frame
@@ -50,4 +55,35 @@ void AMyBox::GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimePr
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AMyBox, replicatedVar);
+}
+
+void AMyBox::OnRep_ReplicatedVar()
+{
+	if (!HasAuthority())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, 
+			FString::Printf(TEXT("Client %d: OnRep_ReplicatedVar"), GPlayInEditorID));
+		return;
+	}
+
+	FVector newLocation = GetActorLocation() + FVector(0.0f, 0.0f, 200.0f);
+	SetActorLocation(newLocation);
+
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, TEXT("Server: OnRep_ReplicatedVar"));
+}
+
+void AMyBox::DecreasedReplicatedVar()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	replicatedVar -= 1.0f;
+	OnRep_ReplicatedVar();
+
+	if (replicatedVar > 0)
+	{
+		GetWorld()->GetTimerManager().SetTimer(testTimer, this, &AMyBox::DecreasedReplicatedVar, 2.0f, false);
+	}
 }
